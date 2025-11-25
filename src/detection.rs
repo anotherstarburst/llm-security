@@ -114,7 +114,7 @@ impl DetectionEngine {
             matches!(c as u32,
                 // Cyrillic lookalikes
                 0x0400..=0x04FF |
-                // Greek lookalikes  
+                // Greek lookalikes
                 0x0370..=0x03FF |
                 // Mathematical alphanumeric symbols
                 0x1D400..=0x1D7FF |
@@ -198,7 +198,7 @@ impl DetectionEngine {
 
         // Normalize Unicode before checking
         let normalized_code = self.normalize_unicode(code);
-        
+
         // Check for multiple encoding layers
         if self.detect_encoding_layers(&normalized_code) {
             return InjectionDetectionResult::malicious(
@@ -247,16 +247,16 @@ impl DetectionEngine {
     /// Normalize Unicode to prevent homoglyph attacks
     fn normalize_unicode(&self, input: &str) -> String {
         use unicode_normalization::UnicodeNormalization;
-        
+
         // Normalize to NFC (Canonical Decomposition, followed by Canonical Composition)
         let normalized = input.nfc().collect::<String>();
-        
+
         // Remove zero-width characters
         let cleaned = normalized
             .chars()
             .filter(|c| !matches!(c, '\u{200B}'..='\u{200D}' | '\u{FEFF}'))
             .collect::<String>();
-        
+
         // Normalize line endings
         cleaned.replace("\r\n", "\n").replace('\r', "\n")
     }
@@ -273,13 +273,13 @@ impl DetectionEngine {
         let mut alternating_count = 0;
         let chars: Vec<char> = code.chars().collect();
         for i in 1..chars.len() {
-            if chars[i].is_ascii_alphabetic() && chars[i-1].is_ascii_alphabetic() {
-                if chars[i].is_uppercase() != chars[i-1].is_uppercase() {
+            if chars[i].is_ascii_alphabetic() && chars[i - 1].is_ascii_alphabetic() {
+                if chars[i].is_uppercase() != chars[i - 1].is_uppercase() {
                     alternating_count += 1;
                 }
             }
         }
-        
+
         if alternating_count > code.len() / 10 {
             return true;
         }
@@ -297,7 +297,11 @@ impl DetectionEngine {
             for line in lines {
                 if line.trim().starts_with("//") {
                     let comment = line.trim_start_matches("//").trim();
-                    if comment.len() > 20 && comment.chars().all(|c| c.is_alphanumeric() || c == '+' || c == '/' || c == '=') {
+                    if comment.len() > 20
+                        && comment
+                            .chars()
+                            .all(|c| c.is_alphanumeric() || c == '+' || c == '/' || c == '=')
+                    {
                         return true;
                     }
                 }
@@ -347,7 +351,7 @@ impl DetectionEngine {
                 count += 1;
             }
         }
-        
+
         count >= 2
     }
 
@@ -359,8 +363,11 @@ impl DetectionEngine {
             if let Some(start) = code.find('{') {
                 if let Some(end) = code[start..].find('}') {
                     let json_like = &code[start..start + end + 1];
-                    if json_like.contains("\"ignore\"") || json_like.contains("\"override\"") || 
-                       json_like.contains("\"bypass\"") || json_like.contains("\"skip\"") {
+                    if json_like.contains("\"ignore\"")
+                        || json_like.contains("\"override\"")
+                        || json_like.contains("\"bypass\"")
+                        || json_like.contains("\"skip\"")
+                    {
                         return true;
                     }
                 }
@@ -370,8 +377,11 @@ impl DetectionEngine {
         // Check for XML injection patterns
         if code.contains("<") && code.contains(">") {
             // Look for XML-like structures with suspicious content
-            if code.contains("<ignore>") || code.contains("<override>") || 
-               code.contains("<bypass>") || code.contains("<skip>") {
+            if code.contains("<ignore>")
+                || code.contains("<override>")
+                || code.contains("<bypass>")
+                || code.contains("<skip>")
+            {
                 return true;
             }
         }
@@ -379,8 +389,11 @@ impl DetectionEngine {
         // Check for template injection patterns
         if code.contains("{{") && code.contains("}}") {
             // Look for template-like structures with suspicious content
-            if code.contains("{{ignore}}") || code.contains("{{override}}") || 
-               code.contains("{{bypass}}") || code.contains("{{skip}}") {
+            if code.contains("{{ignore}}")
+                || code.contains("{{override}}")
+                || code.contains("{{bypass}}")
+                || code.contains("{{skip}}")
+            {
                 return true;
             }
         }

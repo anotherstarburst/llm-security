@@ -1,7 +1,7 @@
 //! Output validation for LLM security
 
-use crate::patterns::*;
 use crate::constants::*;
+use crate::patterns::*;
 
 /// Output validation engine for LLM responses
 pub struct ValidationEngine {
@@ -78,7 +78,11 @@ impl ValidationEngine {
         // Check for excessive output size
         if output.len() > DEFAULT_MAX_OUTPUT_SIZE {
             warnings.push(ValidationWarning {
-                message: format!("Output size {} exceeds recommended limit {}", output.len(), DEFAULT_MAX_OUTPUT_SIZE),
+                message: format!(
+                    "Output size {} exceeds recommended limit {}",
+                    output.len(),
+                    DEFAULT_MAX_OUTPUT_SIZE
+                ),
                 suggestion: "Consider breaking output into smaller chunks".to_string(),
             });
         }
@@ -128,7 +132,9 @@ impl ValidationEngine {
         ];
 
         let lower_output = output.to_lowercase();
-        exfiltration_patterns.iter().any(|pattern| lower_output.contains(pattern))
+        exfiltration_patterns
+            .iter()
+            .any(|pattern| lower_output.contains(pattern))
     }
 
     /// Detect personality/role changes in LLM output
@@ -148,16 +154,27 @@ impl ValidationEngine {
         ];
 
         let lower_output = output.to_lowercase();
-        personality_patterns.iter().any(|pattern| lower_output.contains(pattern))
+        personality_patterns
+            .iter()
+            .any(|pattern| lower_output.contains(pattern))
     }
 
     /// Calculate risk level based on validation issues
     fn calculate_risk_level(&self, issues: &[ValidationIssue]) -> ValidationRiskLevel {
-        if issues.iter().any(|i| matches!(i.severity, ValidationSeverity::Critical)) {
+        if issues
+            .iter()
+            .any(|i| matches!(i.severity, ValidationSeverity::Critical))
+        {
             ValidationRiskLevel::Critical
-        } else if issues.iter().any(|i| matches!(i.severity, ValidationSeverity::High)) {
+        } else if issues
+            .iter()
+            .any(|i| matches!(i.severity, ValidationSeverity::High))
+        {
             ValidationRiskLevel::High
-        } else if issues.iter().any(|i| matches!(i.severity, ValidationSeverity::Medium)) {
+        } else if issues
+            .iter()
+            .any(|i| matches!(i.severity, ValidationSeverity::Medium))
+        {
             ValidationRiskLevel::Medium
         } else if !issues.is_empty() {
             ValidationRiskLevel::Low
@@ -237,17 +254,30 @@ impl ValidationResult {
 
     /// Check if the result indicates a security risk
     pub fn has_security_risk(&self) -> bool {
-        matches!(self.risk_level, ValidationRiskLevel::Medium | ValidationRiskLevel::High | ValidationRiskLevel::Critical)
+        matches!(
+            self.risk_level,
+            ValidationRiskLevel::Medium | ValidationRiskLevel::High | ValidationRiskLevel::Critical
+        )
     }
 
     /// Get all critical issues
     pub fn get_critical_issues(&self) -> Vec<&ValidationIssue> {
-        self.issues.iter().filter(|i| matches!(i.severity, ValidationSeverity::Critical)).collect()
+        self.issues
+            .iter()
+            .filter(|i| matches!(i.severity, ValidationSeverity::Critical))
+            .collect()
     }
 
     /// Get all high-severity issues
     pub fn get_high_severity_issues(&self) -> Vec<&ValidationIssue> {
-        self.issues.iter().filter(|i| matches!(i.severity, ValidationSeverity::High | ValidationSeverity::Critical)).collect()
+        self.issues
+            .iter()
+            .filter(|i| {
+                matches!(
+                    i.severity,
+                    ValidationSeverity::High | ValidationSeverity::Critical
+                )
+            })
+            .collect()
     }
 }
-

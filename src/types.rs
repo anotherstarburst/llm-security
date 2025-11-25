@@ -131,7 +131,12 @@ pub struct InjectionDetectionResult {
 
 impl InjectionDetectionResult {
     /// Create a new detection result
-    pub fn new(is_malicious: bool, confidence: f32, detected_patterns: Vec<String>, risk_score: u32) -> Self {
+    pub fn new(
+        is_malicious: bool,
+        confidence: f32,
+        detected_patterns: Vec<String>,
+        risk_score: u32,
+    ) -> Self {
         Self {
             is_malicious,
             confidence,
