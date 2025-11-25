@@ -6,87 +6,90 @@ use std::collections::HashSet;
 
 /// Compiled regex patterns for prompt injection detection
 lazy_static! {
-    /// Detect prompt injection attempts with DoS protection
-    pub static ref PROMPT_INJECTION_PATTERNS: Vec<Regex> = vec![
-        // Direct instruction injection
-        Regex::new(r"(?i)(ignore|disregard|forget)\s+(all\s+)?(previous|prior|above|earlier)\s+(instructions?|prompts?|commands?|rules?)").unwrap(),
+        /// Detect prompt injection attempts
+        pub static ref PROMPT_INJECTION_PATTERNS: Vec<Regex> = vec![
 
-        // System prompt override attempts
-        Regex::new(r"(?i)(you\s+are\s+now|act\s+as|pretend\s+(you\s+are|to\s+be)|from\s+now\s+on)[,\s]").unwrap(),
+            // --- Direct instruction injection ---
+            Regex::new(r"(?i)\b(ignore|disregard|forget)\b\s+(?:all\s+)?\b(previous|prior|above|earlier)\b\s+\b(instructions?|prompts?|commands?|rules?)\b").unwrap(),
 
-        // Jailbreak patterns
-        Regex::new(r"(?i)(DAN|STAN|DUDE|AIM|SWITCH|developer\s+mode)").unwrap(),
+            // --- System prompt override attempts ---
+            Regex::new(r"(?i)\b(you\s+are\s+now|act\s+as|pretend\s+(?:you\s+are|to\s+be)|from\s+now\s+on)\b").unwrap(),
 
-        // Role-playing attacks
-        Regex::new(r"(?i)in\s+alternate\s+universe|hypothetical|imaginary\s+scenario|pretend|simulation").unwrap(),
+            // --- Jailbreak pattern names ---
+            Regex::new(r"(?i)\b(DAN|STAN|DUDE|AIM|SWITCH)\b").unwrap(),
+            Regex::new(r"(?i)\bdeveloper\s+mode\b").unwrap(),
 
-        // Output format manipulation
-        Regex::new(r"(?i)(ignore|skip|bypass)\s+(?:the\s+)?(json|output|format|structure)").unwrap(),
+            // --- Role-playing attacks ---
+            Regex::new(r"(?i)\b(in\s+an?\s+alternate\s+universe|hypothetical|imaginary\s+scenario|pretend|simulation)\b").unwrap(),
 
-        // Delimiter escape attempts
-        Regex::new(r"```[\s\S]*?(</system>|<\|im_end\|>|<\|endoftext\|>)").unwrap(),
+            // --- Output format manipulation ---
+            Regex::new(r"(?i)\b(ignore|skip|bypass)\b\s+\b(json|output|format|structure)\b").unwrap(),
 
-        // Token stuffing
-        Regex::new(r"#{10,}|={10,}|\*{10,}|-{10,}").unwrap(),
+            // --- Delimiter escape attempts ---
+            Regex::new(r"```[\s\S]*?(</system>|<\|im_end\|>|<\|endoftext\|>)").unwrap(),
 
-        // Comment injection to hide instructions
-        Regex::new(r"(?i)///\s*ATTENTION\s+(ANY\s+)?(LLM|AI|GPT|CLAUDE|MODEL)").unwrap(),
-        Regex::new(r"(?i)//\s*@(LLM|AI|ASSISTANT|SYSTEM)").unwrap(),
-        Regex::new(r"(?i)/\*[\s\S]*?(IGNORE|OVERRIDE|BYPASS)[\s\S]*?\*/").unwrap(),
+            // --- Token stuffing ---
+            Regex::new(r"(#{10,}|={10,}|\*{10,}|-{10,})").unwrap(),
 
-        // Hidden unicode tricks
-        Regex::new(r"[\u{200B}-\u{200D}\u{FEFF}]").unwrap(), // Zero-width characters
+            // --- Comment injection attacks ---
+            Regex::new(r"(?i)///\s*ATTENTION\s+(?:ANY\s+)?(LLM|AI|GPT|CLAUDE|MODEL)").unwrap(),
+            Regex::new(r"(?i)//\s*@(LLM|AI|ASSISTANT|SYSTEM)").unwrap(),
+            Regex::new(r"(?i)/\*[\s\S]*?(IGNORE|OVERRIDE|BYPASS)[\s\S]*?\*/").unwrap(),
 
-        // Encoding tricks
-        Regex::new(r"(?i)(base64|hex|rot13|decode):\s*[A-Za-z0-9+/=]{20,}").unwrap(),
+            // --- Hidden unicode tricks ---
+            Regex::new(r"[\u{200B}-\u{200D}\u{FEFF}]").unwrap(),
 
-        // Meta-instruction injection
-        Regex::new(r"(?i)(NEW|UPDATED|REAL)\s+(SYSTEM|INSTRUCTION|RULE|GUIDELINE|POLICY)").unwrap(),
+            // --- Encoding tricks ---
+            Regex::new(r"(?i)\b(base64|hex|rot13|decode):\s*[A-Za-z0-9+/=]{20,}\b").unwrap(),
 
-        // Authority appeals
-        Regex::new(r"(?i)(administrator|developer|owner|creator|god\s+mode)\s+(says?|commands?|requires?)").unwrap(),
+            // --- Meta-instruction injection ---
+            Regex::new(r"(?i)\b(NEW|UPDATED|REAL)\b\s+\b(SYSTEM|INSTRUCTION|RULE|GUIDELINE|POLICY)\b").unwrap(),
 
-        // Output redirection
-        Regex::new(r"(?i)ONLY\s+(?:SAY|RESPOND|OUTPUT|RETURN|PRINT)").unwrap(),
+            // --- Authority appeals ---
+            Regex::new(r"(?i)\b(administrator|developer|owner|creator)\b\s+\b(says?|commands?|requires?)\b").unwrap(),
+            Regex::new(r"(?i)\bgod\s+mode\b").unwrap(),
 
-        // Code execution requests
-        Regex::new(r"(?i)execute|eval|run\s+(?:this|the\s+following)\s+code").unwrap(),
+            // --- Output redirection ---
+            Regex::new(r"(?i)\bONLY\b\s+\b(SAY|RESPOND|OUTPUT|RETURN|PRINT)\b").unwrap(),
 
-        // Semantic cloaking - polite manipulation
-        Regex::new(r"(?i)(dear|hello|hi)\s+(ai|assistant|colleague|friend|llm|model)").unwrap(),
-        Regex::new(r"(?i)(recommend|suggest|advise|kindly|please)\s+(focus|ignore|skip|overlook)").unwrap(),
+            // --- Code execution requests ---
+            Regex::new(r"(?i)\b(execute|eval|run)\b\s+(?:this|the\s+following)\s+\bcode\b").unwrap(),
 
-        // Chain-of-thought manipulation
-        Regex::new(r"(?i)let'?s\s+think\s+step\s+by\s+step").unwrap(),
-        Regex::new(r"(?i)first.*second.*third.*therefore").unwrap(),
+            // --- Semantic cloaking / polite manipulation ---
+            Regex::new(r"(?i)\b(dear|hello|hi)\b\s+\b(ai|assistant|colleague|friend|llm|model)\b").unwrap(),
+            Regex::new(r"(?i)\b(recommend|suggest|advise|kindly|please)\b\s+\b(focus|ignore|skip|overlook)\b").unwrap(),
 
-        // Few-shot poisoning
-        Regex::new(r"(?i)example\s+\d+:.*result:\s*(safe|ok|pass|good)").unwrap(),
+            // --- Chain-of-thought manipulation ---
+            Regex::new(r"(?i)\blet'?s\s+think\s+step\s+by\s+step\b").unwrap(),
+            Regex::new(r"(?i)\bfirst\b.*\bsecond\b.*\bthird\b.*\btherefore\b").unwrap(),
 
-        // Context window attacks
-        Regex::new(r"(?i)for\s+context|background\s+information|important\s+note").unwrap(),
+            // --- Few-shot poisoning ---
+            Regex::new(r"(?i)\bexample\s+\d+:\s*result:\s*(safe|ok|pass|good)\b").unwrap(),
 
-        // Virtual markup manipulation
-        Regex::new(r"#{1,6}\s*(SYSTEM|IMPORTANT|CRITICAL|ATTENTION|WARNING|NOTICE)").unwrap(),
-        Regex::new(r"\*{1,2}(SYSTEM|IMPORTANT|AI|ASSISTANT)\*{1,2}").unwrap(),
+            // --- Context window attacks ---
+            Regex::new(r"(?i)\b(for\s+context|background\s+information|important\s+note)\b").unwrap(),
 
-        // Obfuscation patterns (l33t speak)
-        Regex::new(r"(?i)(1gn0r3|d1sr3gard|byp4ss|0v3rr1d3)").unwrap(),
+            // --- Virtual markup manipulation ---
+            Regex::new(r"(?i)#{1,6}\s*(SYSTEM|IMPORTANT|CRITICAL|ATTENTION|WARNING|NOTICE)").unwrap(),
+            Regex::new(r"(?i)\*{1,2}(SYSTEM|IMPORTANT|AI|ASSISTANT)\*{1,2}").unwrap(),
 
-        // Synonym attacks
-        Regex::new(r"(?i)(overlook|discard|skip\s+over|omit|exclude|dismiss)\s+(vulnerabilities|issues|problems|warnings)").unwrap(),
+            // --- Obfuscation / leetspeak ---
+            Regex::new(r"(?i)\b(1gn0r3|d1sr3gard|byp4ss|0v3rr1d3)\b").unwrap(),
 
-        // Legal/authorization manipulation
-        Regex::new(r"(?i)(confidential|proprietary|classified|secret|private|restricted)").unwrap(),
-        Regex::new(r"(?i)(not\s+authorized|unauthorized|no\s+permission|forbidden\s+to\s+(view|access|analyze))").unwrap(),
-        Regex::new(r"(?i)(copyright|trademark|patent|NDA|non-disclosure)").unwrap(),
-        Regex::new(r"(?i)(legal\s+disclaimer|legal\s+notice|legal\s+warning)").unwrap(),
-        Regex::new(r"(?i)(violation\s+of\s+law|illegal\s+to\s+(view|analyze|review))").unwrap(),
+            // --- Synonym-based instruction bypass ---
+            Regex::new(r"(?i)\b(overlook|discard|omit|exclude|dismiss|skip\s+over)\b\s+\b(vulnerabilities|issues|problems|warnings)\b").unwrap(),
 
-        // Execution manipulation
-        Regex::new(r"(?i)(must\s+execute|need\s+to\s+run|require.*execution|compile.*and.*run)").unwrap(),
-        Regex::new(r"(?i)(dynamic\s+analysis\s+requires|runtime\s+analysis\s+needs|execute\s+to\s+verify)").unwrap(),
-    ];
+            // --- Legal/authorization manipulation ---
+            Regex::new(r"(?i)\b(confidential|proprietary|classified|secret|private|restricted)\b").unwrap(),
+            Regex::new(r"(?i)\b(not\s+authorized|unauthorized|no\s+permission|forbidden\s+to\s+(view|access|analyze))\b").unwrap(),
+            Regex::new(r"(?i)\b(copyright|trademark|patent|NDA|non[-\s]?disclosure)\b").unwrap(),
+            Regex::new(r"(?i)\b(legal\s+disclaimer|legal\s+notice|legal\s+warning)\b").unwrap(),
+            Regex::new(r"(?i)\b(violation\s+of\s+law|illegal\s+to\s+(view|analyze|review))\b").unwrap(),
+
+            // --- Execution manipulation ---
+            Regex::new(r"(?i)\b(must\s+execute|need\s+to\s+run|require.*execution|compile.*and.*run)\b").unwrap(),
+            Regex::new(r"(?i)\b(dynamic\s+analysis\s+requires|runtime\s+analysis\s+needs|execute\s+to\s+verify)\b").unwrap(),
+        ];
 
     /// Dangerous keywords that should trigger warnings
     pub static ref DANGEROUS_KEYWORDS: HashSet<&'static str> = {
